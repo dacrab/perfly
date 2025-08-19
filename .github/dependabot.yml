@@ -1,0 +1,46 @@
+version: 2
+updates:
+  # Enable version updates for npm
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    # Automatically merge minor and patch updates
+    open-pull-requests-limit: 10
+    reviewers:
+      - "dacrab"
+    assignees:
+      - "dacrab"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    # Group dependencies to reduce PR noise
+    groups:
+      dev-dependencies:
+        dependency-type: "development"
+        patterns:
+          - "@types/*"
+          - "eslint*"
+          - "typescript"
+          - "drizzle-kit"
+          - "@tailwindcss/*"
+      ui-dependencies:
+        patterns:
+          - "@radix-ui/*"
+          - "lucide-react"
+          - "tailwind*"
+          - "class-variance-authority"
+          - "clsx"
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    commit-message:
+      prefix: "ci"
+      include: "scope"

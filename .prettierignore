@@ -1,0 +1,64 @@
+# Dependencies
+node_modules/
+bun.lock
+package-lock.json
+yarn.lock
+
+# Build outputs
+.next/
+dist/
+build/
+out/
+
+# Cache directories
+.cache/
+.parcel-cache/
+.nyc_output/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Coverage
+coverage/
+
+# Generated files
+*.generated.*
+src/db/migrations/
+drizzle/
+
+# IDE and system files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Misc
+*.tgz
+*.tar.gz
+.pnpm-debug.log*
+.vercel/
+
+# Don't format auto-generated or vendor files
+public/
+**/*.min.js
+**/*.min.css
+
+# Specific files that shouldn't be formatted
+CHANGELOG.md
+LICENSE
+*.md.tmp

@@ -1,0 +1,56 @@
+# Configuration for the labeler action
+# https://github.com/actions/labeler
+
+# Database related changes
+"area: database":
+  - "src/db/**/*"
+  - "drizzle.config.ts"
+  - "**/*migration*"
+
+# Frontend/UI changes
+"area: frontend":
+  - "src/components/**/*"
+  - "src/app/**/page.tsx"
+  - "src/app/**/layout.tsx"
+  - "src/app/globals.css"
+
+# API changes
+"area: api":
+  - "src/app/api/**/*"
+
+# Authentication changes
+"area: auth":
+  - "src/lib/auth*.ts"
+  - "src/app/auth/**/*"
+  - "src/app/api/auth/**/*"
+
+# AI/Analysis changes
+"area: ai":
+  - "src/ai/**/*"
+  - "src/app/api/ai/**/*"
+  - "src/components/ai-analysis.tsx"
+
+# Configuration changes
+"area: config":
+  - "*.config.*"
+  - "package.json"
+  - "bun.lock"
+  - ".env*"
+  - "tsconfig.json"
+
+# Documentation changes
+"area: docs":
+  - "*.md"
+  - "docs/**/*"
+
+# DevOps/CI changes
+"area: ci/cd":
+  - ".github/**/*"
+  - "Dockerfile"
+  - "docker-compose.yml"
+
+# Dependencies
+"dependencies":
+  - "package.json"
+  - "bun.lock"
+  - "package-lock.json"
