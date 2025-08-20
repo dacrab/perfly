@@ -1,0 +1,175 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    ":separateMajorReleases",
+    ":combinePatchMinorReleases",
+    ":ignoreUnstable",
+    ":prImmediately",
+    ":updateNotScheduled",
+    ":automergeDisabled",
+    ":ignoreModulesAndTests",
+    ":autodetectPinVersions",
+    ":prConcurrentLimit10",
+    ":prHourlyLimitNone"
+  ],
+  "timezone": "UTC",
+  "schedule": [
+    "before 10am on monday"
+  ],
+  "labels": [
+    "dependencies",
+    "renovate"
+  ],
+  "commitMessagePrefix": "chore(deps):",
+  "semanticCommits": "enabled",
+  "platformAutomerge": true,
+  "dependencyDashboard": true,
+  "dependencyDashboardTitle": "🤖 Dependency Dashboard",
+  "dependencyDashboardHeader": "This issue lists Renovate updates and detected dependencies. Read the [Dependency Dashboard](https://docs.renovatebot.com/key-concepts/dashboard/) docs to learn more.",
+  "packageRules": [
+    {
+      "groupName": "Development dependencies",
+      "matchDepTypes": ["devDependencies"],
+      "matchPackagePatterns": [
+        "@types/.*",
+        "eslint",
+        "eslint-.*",
+        "typescript",
+        "drizzle-kit",
+        "@tailwindcss/.*",
+        "prettier",
+        "@typescript-eslint/.*"
+      ],
+      "schedule": [
+        "before 10am on monday"
+      ],
+      "automerge": true,
+      "platformAutomerge": true,
+      "labels": [
+        "dependencies",
+        "dev-dependencies",
+        "renovate"
+      ]
+    },
+    {
+      "groupName": "UI dependencies",
+      "matchPackagePatterns": [
+        "@radix-ui/.*",
+        "lucide-react",
+        "tailwind.*",
+        "class-variance-authority",
+        "clsx",
+        "tailwind-merge"
+      ],
+      "schedule": [
+        "before 10am on monday"
+      ],
+      "automerge": true,
+      "platformAutomerge": true,
+      "labels": [
+        "dependencies",
+        "ui-dependencies",
+        "renovate"
+      ]
+    },
+    {
+      "groupName": "Production dependencies",
+      "matchDepTypes": ["dependencies"],
+      "excludePackagePatterns": [
+        "@radix-ui/.*",
+        "lucide-react",
+        "tailwind.*",
+        "class-variance-authority",
+        "clsx",
+        "tailwind-merge"
+      ],
+      "schedule": [
+        "before 10am on monday"
+      ],
+      "automerge": false,
+      "reviewers": ["dacrab"],
+      "assignees": ["dacrab"],
+      "labels": [
+        "dependencies",
+        "prod-dependencies",
+        "renovate"
+      ]
+    },
+    {
+      "groupName": "GitHub Actions",
+      "matchManagers": ["github-actions"],
+      "schedule": [
+        "before 10am on monday"
+      ],
+      "automerge": true,
+      "platformAutomerge": true,
+      "labels": [
+        "dependencies",
+        "github-actions",
+        "renovate"
+      ]
+    },
+    {
+      "groupName": "Major version updates",
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "platformAutomerge": false,
+      "reviewers": ["dacrab"],
+      "assignees": ["dacrab"],
+      "labels": [
+        "dependencies",
+        "major-update",
+        "renovate"
+      ],
+      "prBodyTemplate": "⚠️ **Major version update detected!**\n\nThis PR updates {{depName}} from `{{currentVersion}}` to `{{newVersion}}`.\n\n**Please review carefully:**\n- Check the changelog for breaking changes\n- Run tests locally\n- Consider the impact on your application\n\n---\n\n{{{body}}}"
+    },
+    {
+      "groupName": "Security updates",
+      "matchPackagePatterns": [".*"],
+      "matchUpdateTypes": ["patch"],
+      "vulnerabilityAlerts": true,
+      "automerge": true,
+      "platformAutomerge": true,
+      "schedule": ["at any time"],
+      "labels": [
+        "dependencies",
+        "security",
+        "renovate"
+      ]
+    }
+  ],
+  "prConcurrentLimit": 5,
+  "branchConcurrentLimit": 10,
+  "prCreation": "not-pending",
+  "rebaseWhen": "conflicted",
+  "lockFileMaintenance": {
+    "enabled": true,
+    "automerge": true,
+    "platformAutomerge": true,
+    "schedule": [
+      "before 10am on monday"
+    ]
+  },
+  "vulnerabilityAlerts": {
+    "labels": [
+      "security",
+      "renovate"
+    ],
+    "automerge": true,
+    "platformAutomerge": true,
+    "schedule": ["at any time"]
+  },
+  "configMigration": true,
+  "regexManagers": [
+    {
+      "fileMatch": ["^Dockerfile$", "\\.dockerfile$"],
+      "matchStrings": [
+        "FROM (?<depName>.*?):(?<currentValue>.*?)@(?<currentDigest>sha256:[a-f0-9]+)"
+      ],
+      "datasourceTemplate": "docker"
+    }
+  ]
+}

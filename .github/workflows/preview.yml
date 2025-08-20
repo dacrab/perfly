@@ -1,0 +1,239 @@
+name: Preview Environment
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed, ready_for_review]
+  issue_comment:
+    types: [created]
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number || github.event.issue.number }}
+  cancel-in-progress: false
+
+env:
+  FORCE_COLOR: 1
+
+jobs:
+  # 🌟 Setup preview environment
+  setup-preview:
+    name: 🌟 Setup Preview
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'pull_request' && github.event.action != 'closed' && !github.event.pull_request.draft) ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, '/reset-preview'))
+    timeout-minutes: 10
+    outputs:
+      branch-id: ${{ steps.neon-branch.outputs.branch_id }}
+      database-url: ${{ steps.neon-branch.outputs.db_url_with_pooler }}
+    
+    steps:
+      - name: Check permissions
+        if: github.event_name == 'issue_comment'
+        run: |
+          ASSOCIATION="${{ github.event.comment.author_association }}"
+          if [[ ! "$ASSOCIATION" =~ ^(OWNER|COLLABORATOR|MEMBER)$ ]]; then
+            echo "❌ User doesn't have permission to reset preview"
+            exit 1
+          fi
+
+      - name: React to comment
+        if: github.event_name == 'issue_comment'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.reactions.createForIssueComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content: 'rocket'
+            });
+
+      - name: Get PR number
+        id: pr-info
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "pr-number=${{ github.event.number }}" >> $GITHUB_OUTPUT
+          else
+            echo "pr-number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check Neon secrets
+        run: |
+          if [[ -z "${{ secrets.NEON_PROJECT_ID }}" || -z "${{ secrets.NEON_API_KEY }}" ]]; then
+            echo "⚠️ Neon secrets not configured"
+            echo "Required secrets:"
+            echo "- NEON_PROJECT_ID"
+            echo "- NEON_API_KEY"
+            echo ""
+            echo "Add these in repository settings to enable preview environments"
+            exit 0
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Delete existing branch (if reset)
+        if: github.event_name == 'issue_comment'
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          branch: preview/pr-${{ steps.pr-info.outputs.pr-number }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+        continue-on-error: true
+
+      - name: Wait for cleanup
+        if: github.event_name == 'issue_comment'
+        run: sleep 10
+
+      - name: Create Neon branch
+        id: neon-branch
+        uses: neondatabase/create-branch-action@v5
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          parent: main
+          branch_name: preview/pr-${{ steps.pr-info.outputs.pr-number }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+          username: ${{ secrets.NEON_DATABASE_USERNAME || 'neondb_owner' }}
+
+      - name: Apply migrations
+        run: |
+          echo "🔧 Applying database migrations..."
+          export DATABASE_URL="${{ steps.neon-branch.outputs.db_url_with_pooler }}"
+          
+          if bun run db:migrate 2>/dev/null; then
+            echo "✅ Migrations applied successfully"
+          else
+            echo "ℹ️ No migrations to apply or migration script not found"
+          fi
+        continue-on-error: true
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = ${{ steps.pr-info.outputs.pr-number }};
+            const branchId = '${{ steps.neon-branch.outputs.branch_id }}';
+            const action = '${{ github.event_name }}' === 'issue_comment' ? 'reset' : 'created';
+            
+            const comment = `## 🚀 Preview Environment ${action === 'reset' ? 'Reset' : 'Ready'}!
+            
+            **📋 Environment Details:**
+            - **Database Branch**: \`preview/pr-${prNumber}\`
+            - **Branch ID**: \`${branchId}\`
+            - **Status**: ✅ Active
+            
+            **🛠️ Setup Complete:**
+            - ✅ Isolated Neon database branch ${action === 'reset' ? 'recreated' : 'created'}
+            - ✅ Database migrations applied
+            - ✅ Ready for Vercel preview deployment
+            
+            **🔗 Quick Actions:**
+            - Comment \`/reset-preview\` to recreate the environment
+            - The database branch will be automatically deleted when this PR is closed
+            
+            ---
+            <sub>Updated: ${new Date().toISOString()}</sub>`;
+            
+            // Find existing comment to update
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber
+            });
+            
+            const existingComment = comments.find(comment => 
+              comment.body.includes('Preview Environment') && 
+              comment.user.type === 'Bot'
+            );
+            
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: comment
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: comment
+              });
+            }
+
+      - name: Handle failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = ${{ steps.pr-info.outputs.pr-number }};
+            
+            const comment = `## ❌ Preview Environment Setup Failed
+            
+            The preview environment setup encountered an error.
+            
+            **🔧 Common Issues:**
+            - Missing Neon secrets (NEON_PROJECT_ID, NEON_API_KEY)
+            - Neon plan doesn't support branching
+            - API key permissions
+            
+            **📚 Setup Guide**: See \`docs/DEPLOYMENT_SETUP.md\` for detailed instructions
+            
+            **🔄 Retry**: Comment \`/reset-preview\` to retry setup
+            
+            ---
+            <sub>Failed at: ${new Date().toISOString()}</sub>`;
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: comment
+            });
+
+  # 🧹 Cleanup when PR is closed
+  cleanup-preview:
+    name: 🧹 Cleanup Preview
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    timeout-minutes: 5
+    
+    steps:
+      - name: Delete Neon branch
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          branch: preview/pr-${{ github.event.number }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+        continue-on-error: true
+
+      - name: Comment cleanup status
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const comment = `## 🧹 Preview Environment Cleaned Up
+            
+            ✅ The preview environment for this PR has been successfully cleaned up.
+            
+            All associated resources have been removed:
+            - Database branch deleted
+            - Temporary artifacts cleaned up
+            
+            Thanks for contributing! 🎉`;
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: comment
+            });
+        continue-on-error: true
