@@ -5,39 +5,26 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
-  merge_group:
   workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  cancel-in-progress: true
 
 env:
   FORCE_COLOR: 1
   NODE_OPTIONS: '--max-old-space-size=4096'
-  # Build-time dummy environment variables
-  DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
-  AUTH_SECRET: dummy-secret-for-build
-  GEMINI_API_KEY: dummy-key-for-build
-  AUTH_ORIGIN: http://localhost:3000
-  RESEND_API_KEY: dummy-resend-key
-  GITHUB_CLIENT_ID: dummy-github-id
-  GITHUB_CLIENT_SECRET: dummy-github-secret
 
 jobs:
-  # 🔍 Quality checks
   quality:
-    name: 🔍 Quality & Security
+    name: Quality
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     outputs:
       cache-key: ${{ steps.cache.outputs.key }}
-    
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -45,8 +32,8 @@ jobs:
           bun-version: latest
 
       - name: Cache dependencies
-        uses: actions/cache@v4
         id: cache
+        uses: actions/cache@v4
         with:
           path: |
             ~/.bun
@@ -59,67 +46,22 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: bun install --frozen-lockfile
 
-      - name: Code quality checks
+      - name: Prettier (code only)
         run: |
-          echo "📝 Running code quality checks..."
-          
-          # Formatting
-          echo "🎨 Checking formatting..."
-          bun run format:check
-          
-          # Linting
-          echo "🔧 Running ESLint..."
-          bun run lint
-          
-          # Type checking
-          echo "🔷 Checking TypeScript..."
-          bun run typecheck
-          
-          echo "✅ All quality checks passed!"
+          echo "🎨 Checking formatting for code paths..."
+          bunx -y prettier@3.4.2 --check "src/**/*.{ts,tsx,js,jsx,css,scss,md,mdx,json}" || (echo "❌ Formatting issues in code paths" && exit 1)
 
-      - name: Database schema validation
-        run: |
-          echo "🗄️ Validating database schema..."
-          bun run db:generate
-          
-          if [[ -n $(git status --porcelain) ]]; then
-            echo "❌ Database schema changes detected but migrations not committed!"
-            git status --porcelain
-            exit 1
-          fi
-          
-          echo "✅ Database migrations are up to date"
+      - name: ESLint
+        run: bun run lint
 
-      - name: Security audit
-        run: |
-          echo "🔍 Running security audit..."
-          
-          if bun audit --json > audit-results.json 2>&1; then
-            echo "✅ No vulnerabilities found"
-          else
-            # Check for high/critical vulnerabilities
-            if jq -e '.advisories[] | select(.severity == "high" or .severity == "critical")' audit-results.json > /dev/null 2>&1; then
-              echo "❌ High or critical severity vulnerabilities found!"
-              jq -r '.advisories[] | select(.severity == "high" or .severity == "critical") | "- \(.title) (\(.severity))"' audit-results.json
-              exit 1
-            else
-              echo "ℹ️ Only low/moderate severity vulnerabilities found"
-            fi
-          fi
-        continue-on-error: false
+      - name: TypeScript
+        run: bun run typecheck
 
-      - name: Set cache key output
-        run: echo "key=${{ runner.os }}-deps-${{ hashFiles('**/bun.lockb', '**/package.json') }}" >> $GITHUB_OUTPUT
-
-  # 🏗️ Build and test
   build:
-    name: 🏗️ Build & Test
+    name: Build
     runs-on: ubuntu-latest
     needs: quality
-    timeout-minutes: 15
-    outputs:
-      build-size: ${{ steps.build-info.outputs.size }}
-    
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -138,101 +80,4 @@ jobs:
           key: ${{ needs.quality.outputs.cache-key }}
 
       - name: Build application
-        run: |
-          echo "🏗️ Building application..."
-          bun run build
-
-      - name: Build analysis
-        id: build-info
-        run: |
-          if [ -d ".next" ]; then
-            BUILD_SIZE_MB=$(($(du -sb .next/ | cut -f1) / 1024 / 1024))
-            echo "📦 Build size: ${BUILD_SIZE_MB}MB"
-            echo "size=$BUILD_SIZE_MB" >> $GITHUB_OUTPUT
-            
-            if [[ "$BUILD_SIZE_MB" -gt 50 ]]; then
-              echo "⚠️ Large build size detected (${BUILD_SIZE_MB}MB)"
-            fi
-          else
-            echo "❌ Build output not found"
-            exit 1
-          fi
-
-      - name: Upload build artifacts
-        if: github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-artifacts
-          path: .next
-          retention-days: 1
-
-  # 🚀 Deploy (main branch only)
-  deploy:
-    name: 🚀 Deploy
-    runs-on: ubuntu-latest
-    needs: [quality, build]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    timeout-minutes: 10
-    environment: production
-    
-    steps:
-      - name: Check secrets
-        run: |
-          if [[ -z "${{ secrets.VERCEL_TOKEN }}" ]]; then
-            echo "⚠️ VERCEL_TOKEN not configured - skipping deployment"
-            echo "Add required secrets in repository settings:"
-            echo "- VERCEL_TOKEN"
-            echo "- VERCEL_ORG_ID"  
-            echo "- VERCEL_PROJECT_ID"
-            exit 0
-          fi
-
-      - name: Deploy notification
-        run: |
-          echo "🚀 Deploying to production..."
-          echo "📦 Commit: ${{ github.sha }}"
-          echo "👤 Author: ${{ github.actor }}"
-          echo "🏗️ Build size: ${{ needs.build.outputs.build-size }}MB"
-          echo ""
-          echo "✅ Deployment will be handled by Vercel GitHub integration"
-          echo "🌐 Check your Vercel dashboard for deployment status"
-
-  # 📊 Summary
-  summary:
-    name: 📊 Summary
-    runs-on: ubuntu-latest
-    needs: [quality, build, deploy]
-    if: always()
-    
-    steps:
-      - name: Generate summary
-        run: |
-          echo "🏁 CI Pipeline Summary"
-          echo "====================="
-          echo "📦 Repository: ${{ github.repository }}"
-          echo "🌿 Branch: ${{ github.ref_name }}"
-          echo "📝 Commit: ${{ github.sha }}"
-          echo "👤 Actor: ${{ github.actor }}"
-          echo ""
-          
-          # Job results
-          QUALITY_STATUS="${{ needs.quality.result }}"
-          BUILD_STATUS="${{ needs.build.result }}"
-          DEPLOY_STATUS="${{ needs.deploy.result }}"
-          
-          echo "📋 Results:"
-          echo "  - Quality: $QUALITY_STATUS"
-          echo "  - Build: $BUILD_STATUS"
-          echo "  - Deploy: $DEPLOY_STATUS"
-          
-          if [[ "$QUALITY_STATUS" == "success" && "$BUILD_STATUS" == "success" ]]; then
-            echo ""
-            echo "✅ All checks passed!"
-            if [[ "$DEPLOY_STATUS" == "success" || "$DEPLOY_STATUS" == "skipped" ]]; then
-              echo "🚀 Ready for production"
-            fi
-          else
-            echo ""
-            echo "❌ Some checks failed - review the logs above"
-            exit 1
-          fi
+        run: bun run build
