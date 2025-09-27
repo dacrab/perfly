@@ -20,8 +20,6 @@ jobs:
     name: Quality
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    outputs:
-      cache-key: ${{ steps.cache.outputs.key }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -38,7 +36,7 @@ jobs:
           path: |
             ~/.bun
             node_modules
-          key: ${{ runner.os }}-deps-${{ hashFiles('**/bun.lockb', '**/package.json') }}
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/bun.lock', '**/package.json') }}
           restore-keys: |
             ${{ runner.os }}-deps-
 
@@ -77,7 +75,9 @@ jobs:
           path: |
             ~/.bun
             node_modules
-          key: ${{ needs.quality.outputs.cache-key }}
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/bun.lock', '**/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-deps-
 
       - name: Build application
         run: bun run build
