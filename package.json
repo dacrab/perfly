@@ -43,10 +43,10 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.4",
-    "@types/node": "^20",
+    "@types/node": "^24",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "drizzle-kit": "^0.31.4",
+    "drizzle-kit": "^0.31.5",
     "tailwindcss": "^4",
     "typescript": "^5",
     "ultracite": "^5.4.5"
