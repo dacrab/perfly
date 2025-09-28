@@ -44,7 +44,7 @@ Welcome to the **Perfly** documentation! This folder contains all the essential 
 
 ### 🚧 **In Development**
 - **Performance Testing**: WebPageTest API integration
-- **AI Analysis**: Gemini 2.5 Flash performance insights
+- **Analysis**: Rule-based performance insights
 - **Results Visualization**: Core Web Vitals and metrics display
 - **User Dashboard**: Test history and management
 
@@ -66,7 +66,7 @@ Welcome to the **Perfly** documentation! This folder contains all the essential 
 - **Database**: Neon PostgreSQL (serverless)
 - **ORM**: Drizzle for type-safe queries
 - **Authentication**: Better Auth
-- **AI**: Gemini 2.5 Flash
+ 
 - **Email**: Resend
 
 ### Infrastructure

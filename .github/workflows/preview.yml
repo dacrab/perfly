@@ -23,8 +23,11 @@ jobs:
       (github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, '/reset-preview'))
     timeout-minutes: 10
     outputs:
-      branch-id: ${{ steps.neon-branch.outputs.branch_id }}
       database-url: ${{ steps.neon-branch.outputs.db_url_with_pooler }}
+    env:
+      NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+      NEON_DATABASE_USERNAME: ${{ secrets.NEON_DATABASE_USERNAME }}
     
     steps:
       - name: Check permissions
@@ -59,7 +62,7 @@ jobs:
 
       - name: Check Neon secrets
         run: |
-          if [[ -z "${{ secrets.NEON_PROJECT_ID }}" || -z "${{ secrets.NEON_API_KEY }}" ]]; then
+          if [[ -z "$NEON_PROJECT_ID" || -z "$NEON_API_KEY" ]]; then
             echo "⚠️ Neon secrets not configured"
             echo "Required secrets:"
             echo "- NEON_PROJECT_ID"
@@ -84,9 +87,9 @@ jobs:
         if: github.event_name == 'issue_comment'
         uses: neondatabase/delete-branch-action@v3
         with:
-          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          project_id: ${{ env.NEON_PROJECT_ID }}
           branch: preview/pr-${{ steps.pr-info.outputs.pr-number }}
-          api_key: ${{ secrets.NEON_API_KEY }}
+          api_key: ${{ env.NEON_API_KEY }}
         continue-on-error: true
 
       - name: Wait for cleanup
@@ -97,11 +100,11 @@ jobs:
         id: neon-branch
         uses: neondatabase/create-branch-action@v5
         with:
-          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          project_id: ${{ env.NEON_PROJECT_ID }}
           parent: main
           branch_name: preview/pr-${{ steps.pr-info.outputs.pr-number }}
-          api_key: ${{ secrets.NEON_API_KEY }}
-          username: ${{ secrets.NEON_DATABASE_USERNAME || 'neondb_owner' }}
+          api_key: ${{ env.NEON_API_KEY }}
+          username: ${{ env.NEON_DATABASE_USERNAME || 'neondb_owner' }}
 
       - name: Apply migrations
         run: |
@@ -120,14 +123,12 @@ jobs:
         with:
           script: |
             const prNumber = ${{ steps.pr-info.outputs.pr-number }};
-            const branchId = '${{ steps.neon-branch.outputs.branch_id }}';
             const action = '${{ github.event_name }}' === 'issue_comment' ? 'reset' : 'created';
             
             const comment = `## 🚀 Preview Environment ${action === 'reset' ? 'Reset' : 'Ready'}!
             
             **📋 Environment Details:**
             - **Database Branch**: \`preview/pr-${prNumber}\`
-            - **Branch ID**: \`${branchId}\`
             - **Status**: ✅ Active
             
             **🛠️ Setup Complete:**
@@ -211,9 +212,9 @@ jobs:
       - name: Delete Neon branch
         uses: neondatabase/delete-branch-action@v3
         with:
-          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          project_id: ${{ env.NEON_PROJECT_ID }}
           branch: preview/pr-${{ github.event.number }}
-          api_key: ${{ secrets.NEON_API_KEY }}
+          api_key: ${{ env.NEON_API_KEY }}
         continue-on-error: true
 
       - name: Comment cleanup status

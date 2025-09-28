@@ -1,10 +1,10 @@
-import { NextResponse } from 'next/server';
-import { tests } from '@/db/schema';
 import db from '@/db';
-import { nanoid } from 'nanoid';
+import { tests } from '@/db/schema';
 import { auth } from '@/lib/auth';
-import { getTestJobProcessor } from '@/lib/queue';
 import logger, { getRequestContext, performanceMonitor } from '@/lib/logger';
+import { getTestJobProcessor } from '@/lib/queue';
+import { nanoid } from 'nanoid';
+import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   const requestContext = getRequestContext(request);
@@ -59,8 +59,8 @@ export async function POST(request: Request) {
           ...requestContext,
           testId,
           url: normalizedUrl,
-          userId: userId || undefined,
           isAuthenticated: !!userId,
+          ...(userId ? { userId } : {}),
         });
 
         // Create a new test in the database
@@ -93,7 +93,7 @@ export async function POST(request: Request) {
           ...requestContext,
           testId,
           url: normalizedUrl,
-          userId: userId || undefined,
+          ...(userId ? { userId } : {}),
         });
 
         return NextResponse.json({

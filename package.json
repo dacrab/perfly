@@ -6,19 +6,18 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "lint:fix": "next lint --fix",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "format:fix": "prettier --write .",
+    "lint": "ultracite check",
+    "format": "ultracite fix",
+    "format:check": "ultracite check",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:migrate": "drizzle-kit migrate",
-    "check-all": "bun run typecheck && bun run lint && bun run format:check"
+    "check-all": "bun run typecheck && bun run lint && bun run format:check",
+    "biome:check": "biome check --no-errors-on-unmatched --reporter=summary .",
+    "biome:fix": "biome check --write --no-errors-on-unmatched --reporter=summary ."
   },
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
     "@neondatabase/serverless": "^1.0.1",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-dropdown-menu": "^2.1.15",
@@ -43,19 +42,13 @@
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4.1.11",
+    "@biomejs/biome": "^2.2.4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "drizzle-kit": "^0.31.4",
-    "eslint": "^9",
-    "eslint-config-next": "15.4.3",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-prettier": "^5.2.1",
-    "prettier": "^3.4.2",
-    "prettier-plugin-tailwindcss": "^0.6.8",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "ultracite": "^5.4.5"
   }
 }

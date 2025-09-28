@@ -1,7 +1,7 @@
-import { getWebPageTestClient } from './webpagetest';
 import db from '@/db';
 import { tests } from '@/db/schema';
 import { eq } from 'drizzle-orm';
+import { getPageSpeedClient } from './pagespeed';
 
 interface TestJob {
   testId: string;
@@ -75,7 +75,7 @@ class TestJobProcessor {
   }
 
   private async processTest(job: TestJob) {
-    const { testId, url, options = {} } = job;
+    const { testId, url, options: _options = {} } = job;
 
     try {
       console.log(`Starting test ${testId} for ${url}`);
@@ -89,97 +89,13 @@ class TestJobProcessor {
         })
         .where(eq(tests.id, testId));
 
-      const client = getWebPageTestClient();
-
-      // Start the WebPageTest
-      const testResponse = await client.runTest({
-        url,
-        location: options.location,
-        runs: options.runs || 1,
-        firstViewOnly: true,
-        connectivity: options.connectivity || 'Cable',
-        video: false,
-        timeline: false,
-        lighthouse: options.lighthouse || true,
-      });
-
-      if (testResponse.statusCode !== 200 || !testResponse.data) {
-        throw new Error(`Failed to start test: ${testResponse.statusText}`);
-      }
-
-      const webPageTestId = testResponse.data.testId;
-
-      // Update with WebPageTest ID
-      await db
-        .update(tests)
-        .set({
-          webPageTestId,
-          updatedAt: new Date(),
-        })
-        .where(eq(tests.id, testId));
-
-      // Start polling for results
-      this.pollTestResults(testId, webPageTestId);
+      const client = getPageSpeedClient();
+      const results = await client.analyze(url, 'mobile');
+      await this.saveTestResults(testId, results);
     } catch (error) {
       console.error(`Failed to start test ${testId}:`, error);
       await this.markTestAsFailed(testId, error);
     }
-  }
-
-  private async pollTestResults(testId: string, webPageTestId: string) {
-    const maxPollingTime = 10 * 60 * 1000; // 10 minutes
-    const pollingInterval = 15000; // 15 seconds
-    const startTime = Date.now();
-
-    const poll = async () => {
-      try {
-        if (Date.now() - startTime > maxPollingTime) {
-          throw new Error('Test timeout - took longer than 10 minutes');
-        }
-
-        const client = getWebPageTestClient();
-        const status = await client.getTestStatus(webPageTestId);
-
-        if (status.statusCode === 200 && status.data?.statusCode === 200) {
-          // Test completed successfully
-          console.log(`Test ${testId} completed, fetching results...`);
-
-          try {
-            const results = await client.getTestResults(webPageTestId);
-            await this.saveTestResults(testId, results);
-          } catch (resultsError) {
-            console.error(
-              `Failed to fetch results for ${testId}:`,
-              resultsError
-            );
-            // Try one more time after a brief delay
-            setTimeout(async () => {
-              try {
-                const results = await client.getTestResults(webPageTestId);
-                await this.saveTestResults(testId, results);
-              } catch (retryError) {
-                await this.markTestAsFailed(testId, retryError);
-              }
-            }, 5000);
-          }
-        } else if (status.statusCode >= 400) {
-          // Test failed
-          throw new Error(`Test failed with status: ${status.statusText}`);
-        } else {
-          // Test still running, continue polling
-          console.log(
-            `Test ${testId} still running... (elapsed: ${Date.now() - startTime}ms)`
-          );
-          setTimeout(poll, pollingInterval);
-        }
-      } catch (error) {
-        console.error(`Error polling test ${testId}:`, error);
-        await this.markTestAsFailed(testId, error);
-      }
-    };
-
-    // Start polling after initial delay
-    setTimeout(poll, pollingInterval);
   }
 
   private async saveTestResults(testId: string, results: unknown) {
@@ -235,7 +151,7 @@ export function getTestJobProcessor(): TestJobProcessor {
 // Auto-start processor in production
 if (
   process.env.NODE_ENV === 'production' ||
-  process.env.AUTO_START_PROCESSOR === 'true'
+  process.env['AUTO_START_PROCESSOR'] === 'true'
 ) {
   console.log('Auto-starting test job processor...');
   getTestJobProcessor().start().catch(console.error);

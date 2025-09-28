@@ -1,5 +1,5 @@
-import { pgTable, text, timestamp, varchar } from 'drizzle-orm/pg-core';
 import { InferSelectModel } from 'drizzle-orm';
+import { pgTable, text, timestamp, varchar } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
   id: text('id').primaryKey(),
@@ -24,7 +24,6 @@ export const tests = pgTable('tests', {
   userId: text('user_id').references(() => users.id),
   url: text('url').notNull(),
   status: text('status').notNull().default('PENDING'),
-  webPageTestId: text('webpagetest_id'),
   results: text('results'),
   error: text('error'),
   createdAt: timestamp('created_at').defaultNow().notNull(),

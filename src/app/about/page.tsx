@@ -178,7 +178,7 @@ export default function AboutPage() {
                   { name: 'TypeScript', desc: 'Type Safety' },
                   { name: 'Tailwind CSS', desc: 'Styling' },
                   { name: 'shadcn/ui', desc: 'Components' },
-                  { name: 'Gemini AI', desc: 'Smart Insights' },
+                  { name: 'PageSpeed', desc: 'Lighthouse Data' },
                   { name: 'PostgreSQL', desc: 'Database' },
                 ].map(tech => (
                   <div key={tech.name} className='glass-card rounded-xl p-3'>
@@ -196,8 +196,8 @@ export default function AboutPage() {
           {[
             {
               icon: Brain,
-              title: 'AI-Powered',
-              description: 'Smart recommendations using Google Gemini',
+              title: 'Insights',
+              description: 'Clear, actionable performance guidance',
               color: 'from-blue-400 to-cyan-500',
             },
             {

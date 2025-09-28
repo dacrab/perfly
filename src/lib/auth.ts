@@ -1,23 +1,20 @@
+import db from '@/db';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import db from '@/db';
 import { magicLink } from 'better-auth/plugins';
 import { resend } from './email';
+
+const AUTH_SECRET = process.env['AUTH_SECRET'];
+if (!AUTH_SECRET) {
+  throw new Error('AUTH_SECRET is required');
+}
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: 'pg',
     usePlural: true,
   }),
-  providers: {
-    email: {
-      from: 'noreply@perfly.io',
-    },
-    github: {
-      clientId: process.env.GITHUB_CLIENT_ID!,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-    },
-  },
+  // Better Auth v1: configure providers via plugins or top-level options.
   plugins: [
     magicLink({
       sendMagicLink: async ({ email, url }) => {
@@ -30,6 +27,5 @@ export const auth = betterAuth({
       },
     }),
   ],
-  secret: process.env.AUTH_SECRET,
-  origin: process.env.AUTH_ORIGIN,
+  secret: AUTH_SECRET,
 });

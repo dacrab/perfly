@@ -44,12 +44,7 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: bun install --frozen-lockfile
 
-      - name: Prettier (code only)
-        run: |
-          echo "🎨 Checking formatting for code paths..."
-          bunx -y prettier@3.4.2 --check "src/**/*.{ts,tsx,js,jsx,css,scss,md,mdx,json}" || (echo "❌ Formatting issues in code paths" && exit 1)
-
-      - name: ESLint
+      - name: Ultracite (lint)
         run: bun run lint
 
       - name: TypeScript

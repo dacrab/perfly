@@ -81,9 +81,6 @@ AUTH_ORIGIN=https://your-domain.vercel.app
 GITHUB_CLIENT_ID=your-github-oauth-client-id
 GITHUB_CLIENT_SECRET=your-github-oauth-client-secret
 
-# AI
-GEMINI_API_KEY=your-gemini-api-key
-
 # Email (optional)
 RESEND_API_KEY=your-resend-api-key
 ```

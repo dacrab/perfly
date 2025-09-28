@@ -15,10 +15,8 @@ Think **WebPageTest** but with a modern, user-friendly interface powered by AI i
 - Detailed waterfall analysis and resource breakdown
 - Performance metrics history and trends
 
-### 🧠 **AI-Powered Analysis**
-- **Gemini 2.5 Flash** integration for intelligent insights
-- Automated performance bottleneck identification
-- Actionable optimization recommendations
+### 🔎 **Analysis**
+- Optional rule-based insights and recommendations
 - Plain-language explanations of technical metrics
 - Test comparison and regression analysis
 
@@ -53,7 +51,7 @@ src/app/
 - **Authentication**: Better Auth with GitHub provider
 - **AI**: Gemini 2.5 Flash for performance analysis
 - **Email**: Resend for notifications
-- **Testing Engine**: WebPageTest API integration
+- **Testing Engine**: Google PageSpeed Insights (Lighthouse) API integration
 
 ### Infrastructure
 - **Hosting**: Vercel with automatic deployments

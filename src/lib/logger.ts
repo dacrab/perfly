@@ -1,3 +1,4 @@
+// Types and interfaces
 interface LogContext {
   userId?: string;
   testId?: string;
@@ -13,18 +14,20 @@ interface LogEntry {
   timestamp: string;
   level: LogLevel;
   message: string;
-  context?: LogContext;
+  context?: LogContext | undefined;
   error?: {
     name: string;
     message: string;
-    stack?: string;
+    stack?: string | undefined;
   };
 }
 
+// Main Logger class
 class Logger {
   private isDevelopment = process.env.NODE_ENV === 'development';
   private isProduction = process.env.NODE_ENV === 'production';
 
+  // Private utility methods
   private formatTimestamp(): string {
     return new Date().toISOString();
   }
@@ -105,6 +108,7 @@ class Logger {
     */
   }
 
+  // Core logging methods
   debug(message: string, context?: LogContext): void {
     this.writeLog(this.createLogEntry('debug', message, context));
   }
@@ -121,13 +125,11 @@ class Logger {
     this.writeLog(this.createLogEntry('error', message, context, error));
   }
 
-  // Specific domain methods
+  // Performance test logging methods
   testStarted(testId: string, url: string, userId?: string): void {
-    this.info('Performance test started', {
-      testId,
-      url,
-      userId,
-    });
+    const context: LogContext = { testId, url };
+    if (userId !== undefined) context.userId = userId;
+    this.info('Performance test started', context);
   }
 
   testCompleted(
@@ -136,33 +138,23 @@ class Logger {
     duration: number,
     userId?: string
   ): void {
-    this.info('Performance test completed', {
-      testId,
-      url,
-      userId,
-      duration,
-    });
+    const context: LogContext = { testId, url, duration } as LogContext;
+    if (userId !== undefined) (context as any).userId = userId;
+    this.info('Performance test completed', context);
   }
 
   testFailed(testId: string, url: string, error: Error, userId?: string): void {
-    this.error(
-      'Performance test failed',
-      {
-        testId,
-        url,
-        userId,
-      },
-      error
-    );
+    const context: LogContext = { testId, url };
+    if (userId !== undefined) context.userId = userId;
+    this.error('Performance test failed', context, error);
   }
 
+  // API logging methods
   apiRequest(method: string, path: string, userId?: string, ip?: string): void {
-    this.info('API request', {
-      method,
-      path,
-      userId,
-      ip,
-    });
+    const context: LogContext = { method, path } as LogContext;
+    if (userId !== undefined) (context as any).userId = userId;
+    if (ip !== undefined) (context as any).ip = ip;
+    this.info('API request', context);
   }
 
   apiError(
@@ -172,18 +164,13 @@ class Logger {
     userId?: string,
     ip?: string
   ): void {
-    this.error(
-      'API error',
-      {
-        method,
-        path,
-        userId,
-        ip,
-      },
-      error
-    );
+    const context: LogContext = { method, path } as LogContext;
+    if (userId !== undefined) (context as any).userId = userId;
+    if (ip !== undefined) (context as any).ip = ip;
+    this.error('API error', context, error);
   }
 
+  // User authentication logging methods
   userAuthenticated(userId: string, method: string): void {
     this.info('User authenticated', {
       userId,
@@ -198,24 +185,33 @@ class Logger {
     });
   }
 
-  webPageTestAPICall(endpoint: string, testId?: string): void {
-    this.debug('WebPageTest API call', {
-      endpoint,
-      testId,
-    });
+  // Better Auth logging methods
+  betterAuthLogin(userId: string, provider?: string): void {
+    const context: LogContext = { userId };
+    if (provider !== undefined) (context as any).provider = provider;
+    this.info('Better Auth login', context);
   }
 
-  webPageTestAPIError(endpoint: string, error: Error, testId?: string): void {
-    this.error(
-      'WebPageTest API error',
-      {
-        endpoint,
-        testId,
-      },
-      error
-    );
+  betterAuthError(stage: string, error: Error, userId?: string): void {
+    const context: LogContext = { stage } as LogContext;
+    if (userId !== undefined) (context as any).userId = userId;
+    this.error('Better Auth error', context, error);
   }
 
+  // PageSpeed Insights logging methods
+  pageSpeedAPICall(endpoint: string, url?: string): void {
+    const context: LogContext = { endpoint } as LogContext;
+    if (url !== undefined) (context as any).url = url;
+    this.debug('PageSpeed Insights API call', context);
+  }
+
+  pageSpeedAPIError(endpoint: string, error: Error, url?: string): void {
+    const context: LogContext = { endpoint } as LogContext;
+    if (url !== undefined) (context as any).url = url;
+    this.error('PageSpeed Insights API error', context, error);
+  }
+
+  // AI analysis logging methods
   aiAnalysisStarted(testId: string): void {
     this.info('AI analysis started', {
       testId,
@@ -239,11 +235,6 @@ class Logger {
     );
   }
 }
-
-// Create singleton instance
-const logger = new Logger();
-
-export default logger;
 
 // Performance monitoring utilities
 export class PerformanceMonitor {
@@ -299,9 +290,7 @@ export class PerformanceMonitor {
   }
 }
 
-export const performanceMonitor = new PerformanceMonitor();
-
-// Error tracking utilities
+// Utility functions
 export function captureError(error: Error, context?: LogContext): void {
   logger.error('Unhandled error captured', context, error);
 
@@ -311,15 +300,19 @@ export function captureError(error: Error, context?: LogContext): void {
   }
 }
 
-// Request context utilities
 export function getRequestContext(request: Request): LogContext {
-  return {
-    userAgent: request.headers.get('user-agent') || undefined,
-    ip:
-      request.headers.get('x-forwarded-for') ||
-      request.headers.get('x-real-ip') ||
-      undefined,
-  };
+  const context: LogContext = {};
+  const ua = request.headers.get('user-agent');
+  if (ua !== null) context.userAgent = ua;
+  const ip =
+    request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip');
+  if (ip !== null) context.ip = ip;
+  return context;
 }
 
+// Singleton instances and exports
+const logger = new Logger();
+export const performanceMonitor = new PerformanceMonitor();
+
+export default logger;
 export { logger };

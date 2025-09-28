@@ -2,14 +2,14 @@
 
 Perfly is a modern web performance testing platform that lets you run comprehensive website speed tests with AI-powered analysis and historical tracking.
 
-Think WebPageTest, but with a streamlined, developer-friendly UX and intelligent insights.
+Think Google PageSpeed Insights + Lighthouse, but with a streamlined, developer-friendly UX and intelligent insights.
 
 ## ✨ Features
 
 - **Performance Testing**: Run tests for any URL with multiple locations and connection profiles
 - **Core Web Vitals**: LCP, CLS, FCP, TTI and more
 - **Waterfall & Resources**: Timing breakdowns and asset details
-- **AI Analysis (Gemini 2.5 Flash)**: Plain-language insights and prioritized recommendations
+- **Analysis**: Plain-language insights and prioritized recommendations (optional, non-AI)
 - **History & Trends**: Save and review past tests (auth required)
 - **Auth via GitHub**: Better Auth with GitHub OAuth and optional magic links (Resend)
 
@@ -20,7 +20,7 @@ Think WebPageTest, but with a streamlined, developer-friendly UX and intelligent
 - **Database**: Neon PostgreSQL
 - **ORM**: Drizzle ORM
 - **Auth**: Better Auth (GitHub, magic link)
-- **AI**: Google Gemini 2.5 Flash (`@google/generative-ai`)
+ 
 - **Email**: Resend
 - **UI**: Tailwind CSS + shadcn/ui + Radix UI + Lucide Icons
 - **Deployment**: Vercel
@@ -30,13 +30,13 @@ Think WebPageTest, but with a streamlined, developer-friendly UX and intelligent
 ```
 src/
 ├─ app/                  # Routes (App Router)
-│  ├─ api/               # API routes (tests, ai/analyze, auth)
+│  ├─ api/               # API routes (tests, auth)
 │  ├─ results/[id]/      # Result views
 │  ├─ dashboard/         # User dashboard
 │  └─ auth/              # Auth UI
 ├─ components/           # UI components (shadcn/ui)
 ├─ db/                   # Drizzle schema & migrations
-├─ lib/                  # Auth, email, logger, queue, utils, webpagetest
+├─ lib/                  # Auth, email, logger, queue, utils, pagespeed
 └─ ai/                   # AI helpers
 ```
 
@@ -44,7 +44,7 @@ src/
 
 - `users` (id, email, hashedPassword?, githubId?)
 - `sessions` (id, userId, expiresAt)
-- `tests` (id, userId?, url, status, webPageTestId?, results?, error?, createdAt, updatedAt, completedAt?)
+- `tests` (id, userId?, url, status, results?, error?, createdAt, updatedAt, completedAt?)
 
 ## 🚀 Getting Started
 
@@ -53,7 +53,7 @@ src/
 - Node.js 18+ or Bun
 - Neon PostgreSQL database
 - GitHub OAuth app (Client ID/Secret)
-- Gemini API key
+ 
 
 ### Quick Setup
 
@@ -89,11 +89,11 @@ AUTH_ORIGIN=http://localhost:3000
 GITHUB_CLIENT_ID=your-github-client-id
 GITHUB_CLIENT_SECRET=your-github-client-secret
 
-# AI
-GEMINI_API_KEY=your-gemini-api-key
-
 # Email (optional)
 RESEND_API_KEY=your-resend-api-key
+
+# Performance Testing
+PAGESPEED_API_KEY=your-google-pagespeed-insights-api-key
 ```
 
 ## 🛠️ Scripts
@@ -121,14 +121,14 @@ bun run check-all        # Typecheck + Lint + Format check
 
 - `POST /api/tests/run` – Trigger a test for a URL
 - `GET /api/tests/[id]` – Fetch test status/results
-- `POST /api/ai/analyze` – Run Gemini analysis on results
+ 
 - `GET /api/auth/[...all]` – Auth routes (Better Auth)
 
 ## 🧩 Implementation Notes
 
 - **Auth**: Configured via Better Auth with GitHub provider and magic link plugin (Resend)
 - **DB**: Drizzle with Neon; migrations in `src/db/migrations`
-- **AI**: `@google/generative-ai` used by server routes for analysis
+ 
 - **UI**: Tailwind v4 with shadcn/ui primitives
 
 ## 📦 Deployment
@@ -171,6 +171,6 @@ MIT
 ## 🔗 Resources
 
 - Docs: `./docs`
-- Tech: Next.js, Neon, Drizzle, Better Auth, Gemini, Resend, shadcn/ui
+- Tech: Next.js, Neon, Drizzle, Better Auth, Resend, shadcn/ui
 
 — Perfly: making performance testing accessible, intelligent, and actionable.
