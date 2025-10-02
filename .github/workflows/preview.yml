@@ -19,8 +19,20 @@ jobs:
     name: 🌟 Setup Preview
     runs-on: ubuntu-latest
     if: |
-      (github.event_name == 'pull_request' && github.event.action != 'closed' && !github.event.pull_request.draft) ||
-      (github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, '/reset-preview'))
+      (
+        github.event_name == 'pull_request' &&
+        github.event.action != 'closed' &&
+        !github.event.pull_request.draft &&
+        secrets.NEON_PROJECT_ID != '' &&
+        secrets.NEON_API_KEY != ''
+      ) ||
+      (
+        github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request &&
+        contains(github.event.comment.body, '/reset-preview') &&
+        secrets.NEON_PROJECT_ID != '' &&
+        secrets.NEON_API_KEY != ''
+      )
     timeout-minutes: 10
     outputs:
       database-url: ${{ steps.neon-branch.outputs.db_url_with_pooler }}
@@ -205,7 +217,7 @@ jobs:
   cleanup-preview:
     name: 🧹 Cleanup Preview
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    if: github.event_name == 'pull_request' && github.event.action == 'closed' && secrets.NEON_PROJECT_ID != '' && secrets.NEON_API_KEY != ''
     timeout-minutes: 5
     
     steps:
