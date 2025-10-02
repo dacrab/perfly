@@ -11,9 +11,7 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
-    "db:migrate": "drizzle-kit migrate",
-    "biome:check": "biome check --no-errors-on-unmatched --reporter=summary .",
-    "biome:fix": "biome check --write --no-errors-on-unmatched --reporter=summary ."
+    "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.1",
