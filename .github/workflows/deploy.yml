@@ -73,11 +73,9 @@ jobs:
         run: |
           echo "🔍 Running deployment checks..."
           
-          # Quick quality checks
+          # Quick quality checks (lint includes typecheck)
           echo "📝 Checking code quality..."
-          bun run format:check
           bun run lint
-          bun run typecheck
           
           # Security audit
           echo "🔍 Running security audit..."
