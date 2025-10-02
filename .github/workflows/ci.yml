@@ -45,7 +45,9 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Ultracite (lint)
-        run: bun run lint
+        run: |
+          bun run format
+          bun run lint
 
       - name: TypeScript
         run: bun run typecheck
