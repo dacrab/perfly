@@ -14,6 +14,8 @@ concurrency:
 env:
   FORCE_COLOR: 1
   NODE_OPTIONS: '--max-old-space-size=4096'
+  # Provide a dummy DB URL for build-time so Next.js doesn't error while collecting page data
+  DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
 
 jobs:
   quality:
