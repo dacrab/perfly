@@ -162,13 +162,8 @@ bun run db:migrate       # Apply migrations
 bun run db:push          # Push schema changes
 
 # Code Quality
-bun run lint             # Run ESLint
-bun run format:check     # Check code formatting
-bun run format:fix       # Fix code formatting
-bun run typecheck        # TypeScript type checking
-
-# All quality checks
-bun run check-all        # Run all quality checks
+bun run lint             # Typecheck + lint (Ultracite)
+bun run format           # Format code (Ultracite)
 ```
 
 ## 🚀 Deployment
@@ -232,7 +227,7 @@ See `docs/DEPLOYMENT_SETUP.md` for detailed deployment instructions.
 
 - **Keep it simple** - Follow the KISS principle
 - **Type safety** - Use TypeScript for all code
-- **Code quality** - Run `bun run check-all` before committing
+- **Code quality** - Run `bun run lint` before committing
 - **UI consistency** - Use shadcn/ui components
 - **Performance** - Optimize for Core Web Vitals
 

@@ -89,10 +89,8 @@ bun run db:migrate       # Apply migrations
 bun run db:push          # Push schema changes
 
 # Quality
-bun run lint             # ESLint checks
-bun run format:check     # Formatting checks
-bun run typecheck        # TypeScript checks
-bun run check-all        # All quality checks
+bun run lint             # Typecheck + lint (Ultracite)
+bun run format           # Format code (Ultracite)
 ```
 
 ## 🚀 Deployment Architecture
@@ -145,7 +143,7 @@ Modern, accessible interface:
 ### Common Issues
 - **Environment Variables**: Check [DEPLOYMENT_SETUP.md](DEPLOYMENT_SETUP.md)
 - **Database Connection**: Verify Neon configuration
-- **Build Errors**: Run `bun run check-all` for quality issues
+- **Build Errors**: Run `bun run lint` for quality issues
 - **Deployment**: Check GitHub Actions logs
 
 ### Resources

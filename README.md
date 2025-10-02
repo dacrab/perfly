@@ -110,11 +110,8 @@ bun run db:migrate       # Apply migrations
 bun run db:push          # Push schema changes
 
 # Quality
-bun run typecheck        # TypeScript checks
-bun run lint             # ESLint
-bun run format:check     # Prettier check
-bun run format:fix       # Prettier write
-bun run check-all        # Typecheck + Lint + Format check
+bun run lint             # Typecheck + lint (Ultracite)
+bun run format           # Format code (Ultracite)
 ```
 
 ## 🔌 Notable Endpoints
@@ -161,7 +158,7 @@ Simple workflow set (see `docs/WORKFLOW-ARCHITECTURE.md`):
 ## 🤝 Contributing
 
 1. Fork and create a feature branch
-2. Make changes and run `bun run check-all`
+2. Make changes and run `bun run lint`
 3. Commit and open a PR
 
 ## 📄 License
