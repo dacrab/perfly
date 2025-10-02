@@ -41,7 +41,7 @@ jobs:
 
       - name: React to comment
         if: github.event_name == 'issue_comment'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             await github.rest.reactions.createForIssueComment({
@@ -119,7 +119,7 @@ jobs:
         continue-on-error: true
 
       - name: Comment on PR
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const prNumber = ${{ steps.pr-info.outputs.pr-number }};
@@ -173,7 +173,7 @@ jobs:
 
       - name: Handle failure
         if: failure()
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const prNumber = ${{ steps.pr-info.outputs.pr-number }};
@@ -218,7 +218,7 @@ jobs:
         continue-on-error: true
 
       - name: Comment cleanup status
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const comment = `## 🧹 Preview Environment Cleaned Up
