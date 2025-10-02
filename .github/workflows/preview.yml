@@ -19,20 +19,8 @@ jobs:
     name: 🌟 Setup Preview
     runs-on: ubuntu-latest
     if: |
-      (
-        github.event_name == 'pull_request' &&
-        github.event.action != 'closed' &&
-        !github.event.pull_request.draft &&
-        secrets.NEON_PROJECT_ID != '' &&
-        secrets.NEON_API_KEY != ''
-      ) ||
-      (
-        github.event_name == 'issue_comment' &&
-        github.event.issue.pull_request &&
-        contains(github.event.comment.body, '/reset-preview') &&
-        secrets.NEON_PROJECT_ID != '' &&
-        secrets.NEON_API_KEY != ''
-      )
+      (github.event_name == 'pull_request' && github.event.action != 'closed' && !github.event.pull_request.draft) ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, '/reset-preview'))
     timeout-minutes: 10
     outputs:
       database-url: ${{ steps.neon-branch.outputs.db_url_with_pooler }}
@@ -113,12 +101,12 @@ jobs:
         uses: neondatabase/create-branch-action@v6
         with:
           project_id: ${{ env.NEON_PROJECT_ID }}
-          parent: main
           branch_name: preview/pr-${{ steps.pr-info.outputs.pr-number }}
           api_key: ${{ env.NEON_API_KEY }}
-          username: ${{ env.NEON_DATABASE_USERNAME || 'neondb_owner' }}
+        if: env.NEON_PROJECT_ID != '' && env.NEON_API_KEY != ''
 
       - name: Apply migrations
+        if: env.NEON_PROJECT_ID != '' && env.NEON_API_KEY != '' && steps.neon-branch.outputs.db_url_with_pooler != ''
         run: |
           echo "🔧 Applying database migrations..."
           export DATABASE_URL="${{ steps.neon-branch.outputs.db_url_with_pooler }}"
@@ -217,7 +205,7 @@ jobs:
   cleanup-preview:
     name: 🧹 Cleanup Preview
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && github.event.action == 'closed' && secrets.NEON_PROJECT_ID != '' && secrets.NEON_API_KEY != ''
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
     timeout-minutes: 5
     
     steps:
