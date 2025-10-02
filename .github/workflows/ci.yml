@@ -16,6 +16,9 @@ env:
   NODE_OPTIONS: '--max-old-space-size=4096'
   # Provide a dummy DB URL for build-time so Next.js doesn't error while collecting page data
   DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
+  # Secrets needed at build-evaluation time
+  AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+  RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
 
 jobs:
   quality:
