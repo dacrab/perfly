@@ -46,6 +46,6 @@
     "drizzle-kit": "^0.31.5",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "ultracite": "^5.4.5"
+    "ultracite": "^5.5.0"
   }
 }
