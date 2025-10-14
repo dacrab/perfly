@@ -52,7 +52,7 @@ jobs:
 
       - name: Create PR if changes
         id: create-pr
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v7
         with:
           commit-message: "chore(deps): bun update"
           title: "chore(deps): bun update"
