@@ -21,9 +21,10 @@ jobs:
     if: |
       (github.event_name == 'pull_request' && github.event.action != 'closed' && !github.event.pull_request.draft) ||
       (github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, '/reset-preview'))
-    timeout-minutes: 10
+    timeout-minutes: 8
     outputs:
       database-url: ${{ steps.neon-branch.outputs.db_url_with_pooler }}
+      pr-number: ${{ steps.pr-info.outputs.pr-number }}
     env:
       NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
       NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
@@ -63,7 +64,7 @@ jobs:
       - name: Check Neon secrets
         run: |
           if [[ -z "$NEON_PROJECT_ID" || -z "$NEON_API_KEY" ]]; then
-            echo "⚠️ Neon secrets not configured"
+            echo "⚠️ Neon secrets not configured - preview environment disabled"
             echo "Required secrets:"
             echo "- NEON_PROJECT_ID"
             echo "- NEON_API_KEY"
@@ -75,13 +76,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup Bun Environment
+        uses: ./.github/actions/setup-bun
         with:
-          bun-version: latest
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+          cache-key: -preview
 
       - name: Delete existing branch (if reset)
         if: github.event_name == 'issue_comment'
@@ -207,6 +205,9 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
     timeout-minutes: 5
+    env:
+      NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
     
     steps:
       - name: Delete Neon branch

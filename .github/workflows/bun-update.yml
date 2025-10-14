@@ -15,9 +15,9 @@ env:
 
 jobs:
   bun-update:
-    name: Run bun update
+    name: 🔄 Bun Update
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 8
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -29,26 +29,16 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup Bun Environment
+        uses: ./.github/actions/setup-bun
         with:
-          bun-version: latest
-
-      - name: Cache dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.bun
-            node_modules
-          key: ${{ runner.os }}-deps-${{ hashFiles('**/bun.lock', '**/package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-deps-
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+          cache-key: -update
 
       - name: Run bun update
-        run: bun update
+        run: |
+          echo "🔄 Running bun update..."
+          bun update
+          echo "✅ Bun update completed"
 
       - name: Create PR if changes
         id: create-pr
@@ -57,7 +47,21 @@ jobs:
           commit-message: "chore(deps): bun update"
           title: "chore(deps): bun update"
           body: |
-            Automated `bun update` run prior to Dependabot. This helps reduce churn and keep the lockfile fresh.
+            ## 🔄 Automated Bun Update
+            
+            This PR contains automated dependency updates from `bun update` run prior to Dependabot.
+            
+            **Purpose**: Reduce churn and keep the lockfile fresh before Dependabot's weekly run.
+            
+            **Changes**: Updated dependency versions in `bun.lock`
+            
+            **Next Steps**: 
+            - Review changes
+            - Run CI to verify compatibility
+            - Merge if all tests pass
+            
+            ---
+            *Automated by Pre-Dependabot Bun Update workflow*
           branch: chore/bun-update
           labels: dependencies, dependabot
           delete-branch: true
@@ -66,5 +70,6 @@ jobs:
       - name: Output PR info
         if: steps.create-pr.outputs.pull-request-number
         run: |
-          echo "Created/updated PR #${{ steps.create-pr.outputs.pull-request-number }}"
+          echo "✅ Created/updated PR #${{ steps.create-pr.outputs.pull-request-number }}"
+          echo "🔗 PR URL: https://github.com/${{ github.repository }}/pull/${{ steps.create-pr.outputs.pull-request-number }}"
 

@@ -20,204 +20,86 @@ env:
   FORCE_COLOR: 1
 
 jobs:
-  # 🔍 Security and dependency audit
-  audit:
-    name: 🔍 Security Audit
+  # 🔧 Complete Maintenance Pipeline
+  maintenance:
+    name: 🔧 Maintenance Pipeline
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 8
     outputs:
-      critical-vulns: ${{ steps.audit.outputs.critical-count }}
+      critical-vulns: ${{ steps.maintenance.outputs.critical-vulns }}
+      high-vulns: ${{ steps.maintenance.outputs.high-vulns }}
+      has-vulnerabilities: ${{ steps.maintenance.outputs.has-vulnerabilities }}
+      cleanup-runs: ${{ steps.maintenance.outputs.cleanup-runs }}
+      cleanup-artifacts: ${{ steps.maintenance.outputs.cleanup-artifacts }}
     
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Run Maintenance Pipeline
+        id: maintenance
+        uses: ./.github/actions/maintenance
         with:
-          bun-version: latest
+          force-cleanup: ${{ github.event.inputs.force_cleanup }}
 
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Security audit
-        id: audit
-        run: |
-          echo "🔍 Running security audit..."
-          
-          if bun audit --json > audit-results.json 2>&1; then
-            echo "✅ No vulnerabilities found"
-            echo "critical-count=0" >> $GITHUB_OUTPUT
-          else
-            # Count critical/high vulnerabilities
-            CRITICAL_COUNT=$(jq -r '[.advisories[] | select(.severity == "critical")] | length' audit-results.json 2>/dev/null || echo "0")
-            HIGH_COUNT=$(jq -r '[.advisories[] | select(.severity == "high")] | length' audit-results.json 2>/dev/null || echo "0")
-            
-            echo "critical-count=$CRITICAL_COUNT" >> $GITHUB_OUTPUT
-            
-            echo "📊 Vulnerability Summary:"
-            echo "  - Critical: $CRITICAL_COUNT"
-            echo "  - High: $HIGH_COUNT"
-            
-            if [[ "$CRITICAL_COUNT" -gt 0 || "$HIGH_COUNT" -gt 0 ]]; then
-              echo "❌ High or critical vulnerabilities found!"
-              jq -r '.advisories[] | select(.severity == "high" or .severity == "critical") | "- \(.title) (\(.severity))"' audit-results.json 2>/dev/null || echo "Unable to parse vulnerability details"
-            else
-              echo "ℹ️ Only low/moderate vulnerabilities found"
-            fi
-          fi
-
-      - name: Upload audit results
-        uses: actions/upload-artifact@v4
-        with:
-          name: security-audit
-          path: audit-results.json
-          retention-days: 30
-        continue-on-error: true
-
-  # 🧹 Cleanup old resources
-  cleanup:
-    name: 🧹 Cleanup
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    
-    steps:
-      - name: Cleanup old workflow runs
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const force = '${{ github.event.inputs.force_cleanup }}' === 'true';
-            const retentionDays = force ? 7 : 30;
-            
-            console.log(`🧹 Cleaning up workflow runs older than ${retentionDays} days...`);
-            
-            const cutoffDate = new Date();
-            cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
-            
-            let deletedCount = 0;
-            let page = 1;
-            
-            while (page <= 5) { // Limit pages to prevent timeout
-              const { data: runs } = await github.rest.actions.listWorkflowRunsForRepo({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                per_page: 100,
-                page: page,
-                status: 'completed'
-              });
-              
-              if (runs.workflow_runs.length === 0) break;
-              
-              for (const run of runs.workflow_runs) {
-                const runDate = new Date(run.created_at);
-                
-                if (runDate < cutoffDate) {
-                  try {
-                    await github.rest.actions.deleteWorkflowRun({
-                      owner: context.repo.owner,
-                      repo: context.repo.repo,
-                      run_id: run.id
-                    });
-                    deletedCount++;
-                  } catch (error) {
-                    console.log(`Failed to delete run ${run.id}: ${error.message}`);
-                  }
-                }
-              }
-              
-              page++;
-            }
-            
-            console.log(`✅ Cleaned up ${deletedCount} old workflow runs`);
-
-      - name: Cleanup old artifacts
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const force = '${{ github.event.inputs.force_cleanup }}' === 'true';
-            const retentionDays = force ? 1 : 7;
-            
-            console.log(`🧹 Cleaning up artifacts older than ${retentionDays} days...`);
-            
-            const cutoffDate = new Date();
-            cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
-            
-            const { data: artifacts } = await github.rest.actions.listArtifactsForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              per_page: 100
-            });
-            
-            let deletedCount = 0;
-            
-            for (const artifact of artifacts.artifacts) {
-              const createdAt = new Date(artifact.created_at);
-              
-              if (createdAt < cutoffDate) {
-                try {
-                  await github.rest.actions.deleteArtifact({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    artifact_id: artifact.id
-                  });
-                  deletedCount++;
-                } catch (error) {
-                  console.log(`Failed to delete artifact ${artifact.name}: ${error.message}`);
-                }
-              }
-            }
-            
-            console.log(`✅ Cleaned up ${deletedCount} old artifacts`);
-
-  # 📊 Generate report
+  # 📊 Generate report and handle security issues
   report:
-    name: 📊 Report
+    name: 📊 Report & Security
     runs-on: ubuntu-latest
-    needs: [audit, cleanup]
+    needs: maintenance
     if: always()
     
     steps:
       - name: Generate maintenance report
         run: |
-          echo "📊 Maintenance Report"
-          echo "===================="
-          echo "📅 Date: $(date -u +%Y-%m-%d)"
-          echo "📦 Repository: ${{ github.repository }}"
-          echo ""
+          echo "📊 Maintenance Report" >> $GITHUB_STEP_SUMMARY
+          echo "====================" >> $GITHUB_STEP_SUMMARY
+          echo "📅 Date: $(date -u +%Y-%m-%d)" >> $GITHUB_STEP_SUMMARY
+          echo "📦 Repository: ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           
-          AUDIT_STATUS="${{ needs.audit.result }}"
-          CLEANUP_STATUS="${{ needs.cleanup.result }}"
-          CRITICAL_VULNS="${{ needs.audit.outputs.critical-vulns || '0' }}"
+          MAINTENANCE_STATUS="${{ needs.maintenance.result }}"
+          CRITICAL_VULNS="${{ needs.maintenance.outputs.critical-vulns || '0' }}"
+          HIGH_VULNS="${{ needs.maintenance.outputs.high-vulns || '0' }}"
+          CLEANUP_RUNS="${{ needs.maintenance.outputs.cleanup-runs || '0' }}"
+          CLEANUP_ARTIFACTS="${{ needs.maintenance.outputs.cleanup-artifacts || '0' }}"
           
-          echo "📋 Results:"
-          echo "  - Security Audit: $AUDIT_STATUS"
-          echo "  - Cleanup: $CLEANUP_STATUS"
-          echo "  - Critical Vulnerabilities: $CRITICAL_VULNS"
+          echo "📋 Results:" >> $GITHUB_STEP_SUMMARY
+          echo "  - Maintenance Pipeline: $MAINTENANCE_STATUS" >> $GITHUB_STEP_SUMMARY
+          echo "  - Critical Vulnerabilities: $CRITICAL_VULNS" >> $GITHUB_STEP_SUMMARY
+          echo "  - High Vulnerabilities: $HIGH_VULNS" >> $GITHUB_STEP_SUMMARY
+          echo "  - Workflow Runs Cleaned: $CLEANUP_RUNS" >> $GITHUB_STEP_SUMMARY
+          echo "  - Artifacts Cleaned: $CLEANUP_ARTIFACTS" >> $GITHUB_STEP_SUMMARY
           
           if [[ "$CRITICAL_VULNS" -gt 0 ]]; then
-            echo ""
-            echo "🚨 CRITICAL: Security vulnerabilities detected!"
-            echo "Review the audit results and update dependencies immediately."
-          elif [[ "$AUDIT_STATUS" == "success" && "$CLEANUP_STATUS" == "success" ]]; then
-            echo ""
-            echo "✅ All maintenance tasks completed successfully"
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "🚨 CRITICAL: Security vulnerabilities detected!" >> $GITHUB_STEP_SUMMARY
+            echo "Review the audit results and update dependencies immediately." >> $GITHUB_STEP_SUMMARY
+          elif [[ "$HIGH_VULNS" -gt 0 ]]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ HIGH: Security vulnerabilities detected!" >> $GITHUB_STEP_SUMMARY
+            echo "Review the audit results and plan dependency updates." >> $GITHUB_STEP_SUMMARY
+          elif [[ "$MAINTENANCE_STATUS" == "success" ]]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "✅ All maintenance tasks completed successfully" >> $GITHUB_STEP_SUMMARY
           else
-            echo ""
-            echo "⚠️ Some maintenance tasks encountered issues"
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ Some maintenance tasks encountered issues" >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Create security issue for critical vulnerabilities
-        if: needs.audit.outputs.critical-vulns > 0
+        if: needs.maintenance.outputs.critical-vulns > 0
         uses: actions/github-script@v8
         with:
           script: |
-            const criticalCount = '${{ needs.audit.outputs.critical-vulns }}';
+            const criticalCount = '${{ needs.maintenance.outputs.critical-vulns }}';
+            const highCount = '${{ needs.maintenance.outputs.high-vulns }}';
             
             const title = `🚨 Critical Security Vulnerabilities Detected (${criticalCount})`;
             
             const body = `## 🚨 Security Alert: Critical Vulnerabilities Detected
             
-            Our automated security audit has detected **${criticalCount}** critical vulnerabilities that require immediate attention.
+            Our automated security audit has detected **${criticalCount}** critical and **${highCount}** high severity vulnerabilities that require immediate attention.
             
             ### 🔧 Required Actions
             1. Review the detailed audit report in the workflow artifacts

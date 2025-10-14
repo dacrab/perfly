@@ -1,0 +1,104 @@
+name: 'Deploy'
+description: 'Deployment pipeline with validation, checks, and notification'
+inputs:
+  environment:
+    description: 'Deployment environment'
+    required: true
+  skip-checks:
+    description: 'Skip quality checks (emergency only)'
+    required: false
+    default: 'false'
+  bun-version:
+    description: 'Bun version to install'
+    required: false
+    default: 'latest'
+  cache-key:
+    description: 'Additional cache key suffix'
+    required: false
+    default: '-deploy'
+
+outputs:
+  deployment-status:
+    description: 'Deployment status'
+    value: ${{ steps.deploy.outputs.status }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Bun Environment
+      uses: ./.github/actions/setup-bun
+      with:
+        bun-version: ${{ inputs.bun-version }}
+        cache-key: ${{ inputs.cache-key }}
+
+    - name: Run deployment checks
+      if: inputs.skip-checks != 'true'
+      shell: bash
+      run: |
+        echo "🔍 Running deployment checks..."
+        
+        # Quick quality checks
+        bun run lint
+        
+        echo "✅ Quality checks passed"
+
+    - name: Security Audit
+      if: inputs.skip-checks != 'true'
+      uses: ./.github/actions/security-audit
+      with:
+        fail-on-critical: 'true'
+        fail-on-high: 'false'
+        upload-artifacts: 'false'
+
+    - name: Build application
+      shell: bash
+      run: |
+        echo "🏗️ Building application..."
+        bun run build
+        
+        # Check build size
+        if [ -d ".next" ]; then
+          BUILD_SIZE_MB=$(($(du -sb .next/ | cut -f1) / 1024 / 1024))
+          echo "📦 Build size: ${BUILD_SIZE_MB}MB"
+          
+          if [[ "$BUILD_SIZE_MB" -gt 100 ]]; then
+            echo "⚠️ Large build size detected (${BUILD_SIZE_MB}MB)"
+            echo "Consider optimizing before deployment"
+          fi
+        fi
+
+    - name: Validate deployment secrets
+      shell: bash
+      run: |
+        echo "🔑 Validating deployment secrets..."
+        
+        if [[ -z "${{ secrets.VERCEL_TOKEN }}" ]]; then
+          echo "❌ VERCEL_TOKEN not configured"
+          echo ""
+          echo "Required secrets for deployment:"
+          echo "- VERCEL_TOKEN"
+          echo "- VERCEL_ORG_ID" 
+          echo "- VERCEL_PROJECT_ID"
+          echo ""
+          echo "Add these in repository settings to enable deployments"
+          exit 1
+        fi
+        
+        echo "✅ Deployment secrets configured"
+
+    - name: Deploy
+      id: deploy
+      shell: bash
+      run: |
+        echo "🚀 Deploying to ${{ inputs.environment }}..."
+        echo ""
+        echo "📋 Deployment Summary:"
+        echo "  - Environment: ${{ inputs.environment }}"
+        echo "  - Commit: ${{ github.sha }}"
+        echo "  - Actor: ${{ github.actor }}"
+        echo "  - Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        echo ""
+        echo "✅ Deployment will be handled by Vercel GitHub integration"
+        echo "🌐 Check your Vercel dashboard for deployment status"
+        
+        echo "status=success" >> $GITHUB_OUTPUT

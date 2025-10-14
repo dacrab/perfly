@@ -1,0 +1,91 @@
+name: 'CI Pipeline'
+description: 'Complete CI pipeline with setup, quality checks, security audit, and build'
+inputs:
+  bun-version:
+    description: 'Bun version to install'
+    required: false
+    default: 'latest'
+  run-build:
+    description: 'Whether to run build check'
+    required: false
+    default: 'true'
+  run-security:
+    description: 'Whether to run security audit'
+    required: false
+    default: 'true'
+  fail-on-high:
+    description: 'Fail on high severity vulnerabilities'
+    required: false
+    default: 'true'
+  fail-on-critical:
+    description: 'Fail on critical severity vulnerabilities'
+    required: false
+    default: 'true'
+  upload-artifacts:
+    description: 'Upload audit results as artifacts'
+    required: false
+    default: 'true'
+  cache-key:
+    description: 'Additional cache key suffix'
+    required: false
+    default: ''
+
+outputs:
+  cache-hit:
+    description: 'Whether cache was hit'
+    value: ${{ steps.setup.outputs.cache-hit }}
+  critical-vulns:
+    description: 'Number of critical vulnerabilities'
+    value: ${{ steps.security.outputs.critical-count }}
+  high-vulns:
+    description: 'Number of high severity vulnerabilities'
+    value: ${{ steps.security.outputs.high-count }}
+  has-vulnerabilities:
+    description: 'Whether any vulnerabilities were found'
+    value: ${{ steps.security.outputs.has-vulnerabilities }}
+  build-size:
+    description: 'Build size in MB'
+    value: ${{ steps.build.outputs.build-size }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Bun Environment
+      id: setup
+      uses: ./.github/actions/setup-bun
+      with:
+        bun-version: ${{ inputs.bun-version }}
+        cache-key: ${{ inputs.cache-key }}
+
+    - name: Lint and Typecheck
+      shell: bash
+      run: bun run lint
+
+    - name: Security Audit
+      id: security
+      if: inputs.run-security == 'true'
+      uses: ./.github/actions/security-audit
+      with:
+        fail-on-critical: ${{ inputs.fail-on-critical }}
+        fail-on-high: ${{ inputs.fail-on-high }}
+        upload-artifacts: ${{ inputs.upload-artifacts }}
+
+    - name: Build application
+      id: build
+      if: inputs.run-build == 'true'
+      shell: bash
+      run: |
+        echo "🏗️ Building application..."
+        bun run build
+        
+        # Check build size
+        if [ -d ".next" ]; then
+          BUILD_SIZE_MB=$(($(du -sb .next/ | cut -f1) / 1024 / 1024))
+          echo "build-size=$BUILD_SIZE_MB" >> $GITHUB_OUTPUT
+          echo "📦 Build size: ${BUILD_SIZE_MB}MB"
+          
+          if [[ "$BUILD_SIZE_MB" -gt 100 ]]; then
+            echo "⚠️ Large build size detected (${BUILD_SIZE_MB}MB)"
+            echo "Consider optimizing before deployment"
+          fi
+        fi

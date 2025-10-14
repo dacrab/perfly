@@ -1,5 +1,6 @@
 version: 2
 updates:
+  # Bun package updates
   - package-ecosystem: "bun"
     directory: "/"
     schedule:
@@ -8,7 +9,7 @@ updates:
       time: "09:00"
       timezone: "UTC"
     labels: ["dependencies", "dependabot"]
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 8
     versioning-strategy: increase
     groups:
       dev-dependencies:
@@ -18,9 +19,15 @@ updates:
           - "@biomejs/*"
           - "drizzle-kit"
           - "tailwind*"
-      github-actions:
+          - "eslint*"
+          - "prettier*"
+      security-updates:
         patterns:
-          - "actions/*"
+          - "*"
+        update-types:
+          - "security"
+  
+  # GitHub Actions updates
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -29,4 +36,5 @@ updates:
       time: "09:00"
       timezone: "UTC"
     labels: ["dependencies", "github-actions", "dependabot"]
+    open-pull-requests-limit: 5
 

@@ -14,67 +14,52 @@ concurrency:
 env:
   FORCE_COLOR: 1
   NODE_OPTIONS: '--max-old-space-size=4096'
-  # Provide a dummy DB URL for build-time so Next.js doesn't error while collecting page data
+  # Build-time environment variables
   DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
-  # Secrets needed at build-evaluation time
-  AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
-  RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+  AUTH_SECRET: ${{ secrets.AUTH_SECRET || 'dummy-secret-for-build' }}
+  RESEND_API_KEY: ${{ secrets.RESEND_API_KEY || 'dummy-resend-key' }}
 
 jobs:
-  quality:
-    name: Quality
+  # 🚀 Complete CI Pipeline
+  ci-pipeline:
+    name: 🚀 CI Pipeline
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Run CI Pipeline
+        uses: ./.github/actions/ci-pipeline
         with:
-          bun-version: latest
+          run-build: true
+          run-security: true
+          fail-on-high: true
+          fail-on-critical: true
+          upload-artifacts: true
 
-      - name: Cache dependencies
-        id: cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.bun
-            node_modules
-          key: ${{ runner.os }}-deps-${{ hashFiles('**/bun.lock', '**/package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-deps-
-
-      - name: Install dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: bun install --frozen-lockfile
-
-      - name: Lint and Typecheck
-        run: bun run lint
-
-  build:
-    name: Build
+  # 📊 Summary and Reporting
+  summary:
+    name: 📊 CI Summary
     runs-on: ubuntu-latest
-    needs: quality
-    timeout-minutes: 10
+    needs: ci-pipeline
+    if: always()
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Restore dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.bun
-            node_modules
-          key: ${{ runner.os }}-deps-${{ hashFiles('**/bun.lock', '**/package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-deps-
-
-      - name: Build application
-        run: bun run build
+      - name: Generate summary
+        run: |
+          echo "## 🚀 CI Pipeline Results" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Quality Checks | ${{ needs.ci-pipeline.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Audit | ${{ needs.ci-pipeline.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | ${{ needs.ci-pipeline.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${{ needs.ci-pipeline.result }}" != "success" ]]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "❌ CI Pipeline failed - check logs for details" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All CI checks passed successfully" >> $GITHUB_STEP_SUMMARY
+          echo "🎉 Ready for deployment!" >> $GITHUB_STEP_SUMMARY
