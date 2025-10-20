@@ -20,6 +20,10 @@ jobs:
     timeout-minutes: 20
     env:
       NEXT_TELEMETRY_DISABLED: "1"
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      PAGESPEED_API_KEY: ${{ secrets.PAGESPEED_API_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,8 +34,7 @@ jobs:
         id: setup-bun
         uses: oven-sh/setup-bun@v1
         with:
-          bun-version: "latest"
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          bun-version: "1.x"
 
       - name: Install dependencies
         run: bun install
