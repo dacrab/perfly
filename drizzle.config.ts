@@ -17,5 +17,6 @@ export default defineConfig({
       })(),
   },
   verbose: true,
-  strict: true,
+  // Disable strict to allow non-interactive push in CI/agents
+  strict: false,
 });

@@ -7,14 +7,15 @@ import {
   ArrowLeft,
   BarChart3,
   Brain,
-  Github,
   Globe,
   Loader,
+  Lock,
   Mail,
   Rocket,
   Shield,
   Sparkles,
   Target,
+  User,
   Users,
   Zap,
 } from 'lucide-react';
@@ -25,8 +26,10 @@ import { toast } from 'sonner';
 
 function AuthContent() {
   const [isLoading, setIsLoading] = useState(false);
-  const [authMethod, setAuthMethod] = useState<'github' | 'email' | null>(null);
+  const [authMethod, setAuthMethod] = useState<'google' | 'email' | 'credentials' | null>(null);
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -36,13 +39,13 @@ function AuthContent() {
     }
   }, [searchParams]);
 
-  const handleSignInWithGithub = async () => {
+  const handleSignInWithGoogle = async () => {
     try {
       setIsLoading(true);
-      setAuthMethod('github');
-      await authClient.signIn.social({ provider: 'github' });
+      setAuthMethod('google');
+      await authClient.signIn.oauth2({ providerId: 'google' });
     } catch (error) {
-      toast.error('Error signing in with Github', {
+      toast.error('Error signing in with Google', {
         description: String(error),
       });
       setIsLoading(false);
@@ -64,6 +67,38 @@ function AuthContent() {
       toast.error('Error signing in with email', {
         description: String(error),
       });
+      setIsLoading(false);
+    }
+  };
+
+  const handleSignUpWithEmailPassword = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!email || !password || !name) return;
+
+    try {
+      setIsLoading(true);
+      setAuthMethod('credentials');
+      const { error } = await authClient.signUp.email({ email, password, name });
+      if (error) throw error;
+      toast.success('Account created! You are now signed in.');
+    } catch (error) {
+      toast.error('Error creating account', { description: String(error) });
+      setIsLoading(false);
+    }
+  };
+
+  const handleSignInWithEmailPassword = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!email || !password) return;
+
+    try {
+      setIsLoading(true);
+      setAuthMethod('credentials');
+      const { error } = await authClient.signIn.email({ email, password });
+      if (error) throw error;
+      toast.success('Signed in successfully');
+    } catch (error) {
+      toast.error('Error signing in', { description: String(error) });
       setIsLoading(false);
     }
   };
@@ -233,23 +268,23 @@ function AuthContent() {
               </div>
 
               <div className='space-y-6'>
-                {/* GitHub Sign In */}
+                {/* Google Sign In */}
                 <Button
-                  onClick={handleSignInWithGithub}
+                  onClick={handleSignInWithGoogle}
                   disabled={isLoading}
                   className='group glass-card hover:elevation-2 relative w-full rounded-2xl border-0 px-6 py-4 font-medium transition-all hover:scale-[1.02] disabled:scale-100'
                   variant='outline'
                 >
                   <div className='relative flex items-center justify-center gap-3'>
-                    {isLoading && authMethod === 'github' ? (
+                    {isLoading && authMethod === 'google' ? (
                       <>
                         <Loader className='h-5 w-5 animate-spin' />
                         <span>Connecting...</span>
                       </>
                     ) : (
                       <>
-                        <Github className='h-5 w-5 transition-transform group-hover:scale-110' />
-                        <span>Continue with GitHub</span>
+                        <Globe className='h-5 w-5 transition-transform group-hover:scale-110' />
+                        <span>Continue with Google</span>
                       </>
                     )}
                   </div>
@@ -267,7 +302,7 @@ function AuthContent() {
                   </div>
                 </div>
 
-                {/* Email Sign In */}
+                {/* Magic Link Sign In */}
                 <form onSubmit={handleSignInWithEmail} className='space-y-4'>
                   <div className='space-y-2'>
                     <label
@@ -301,6 +336,135 @@ function AuthContent() {
                       <>
                         <Mail className='mr-2 h-5 w-5' />
                         Send magic link
+                      </>
+                    )}
+                  </Button>
+                </form>
+
+                {/* Divider */}
+                <div className='relative'>
+                  <div className='absolute inset-0 flex items-center'>
+                    <div className='border-border/20 w-full border-t' />
+                  </div>
+                  <div className='relative flex justify-center text-sm'>
+                    <span className='bg-background text-muted-foreground px-4 font-medium'>
+                      Or use email and password
+                    </span>
+                  </div>
+                </div>
+
+                {/* Credentials: Sign Up */}
+                <form onSubmit={handleSignUpWithEmailPassword} className='space-y-4'>
+                  <div className='space-y-2'>
+                    <label htmlFor='name' className='text-foreground text-sm font-semibold'>
+                      Full name
+                    </label>
+                    <Input
+                      type='text'
+                      id='name'
+                      value={name}
+                      onChange={e => setName(e.target.value)}
+                      placeholder='Your name'
+                      className='glass-card text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/20 h-12 rounded-2xl border-0 px-4 transition-all focus-visible:ring-2 focus-visible:ring-offset-0'
+                      disabled={isLoading}
+                      required
+                    />
+                  </div>
+                  <div className='space-y-2'>
+                    <label htmlFor='email-signup' className='text-foreground text-sm font-semibold'>
+                      Email address
+                    </label>
+                    <Input
+                      type='email'
+                      id='email-signup'
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      placeholder='Enter your email address...'
+                      className='glass-card text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/20 h-12 rounded-2xl border-0 px-4 transition-all focus-visible:ring-2 focus-visible:ring-offset-0'
+                      disabled={isLoading}
+                      required
+                    />
+                  </div>
+                  <div className='space-y-2'>
+                    <label htmlFor='password-signup' className='text-foreground text-sm font-semibold'>
+                      Password
+                    </label>
+                    <Input
+                      type='password'
+                      id='password-signup'
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      placeholder='Create a strong password'
+                      className='glass-card text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/20 h-12 rounded-2xl border-0 px-4 transition-all focus-visible:ring-2 focus-visible:ring-offset-0'
+                      disabled={isLoading}
+                      required
+                    />
+                  </div>
+                  <Button
+                    type='submit'
+                    disabled={isLoading || !email || !password || !name}
+                    className='from-primary elevation-2 hover:elevation-3 h-12 w-full rounded-2xl bg-gradient-to-r via-purple-500 to-pink-500 font-semibold text-white transition-all duration-300 hover:scale-[1.02] disabled:scale-100 disabled:opacity-70'
+                  >
+                    {isLoading && authMethod === 'credentials' ? (
+                      <>
+                        <Loader className='mr-2 h-5 w-5 animate-spin' />
+                        Creating account...
+                      </>
+                    ) : (
+                      <>
+                        <User className='mr-2 h-5 w-5' />
+                        Create account
+                      </>
+                    )}
+                  </Button>
+                </form>
+
+                {/* Credentials: Sign In */}
+                <form onSubmit={handleSignInWithEmailPassword} className='space-y-4'>
+                  <div className='space-y-2'>
+                    <label htmlFor='email-signin' className='text-foreground text-sm font-semibold'>
+                      Email address
+                    </label>
+                    <Input
+                      type='email'
+                      id='email-signin'
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      placeholder='Enter your email address...'
+                      className='glass-card text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/20 h-12 rounded-2xl border-0 px-4 transition-all focus-visible:ring-2 focus-visible:ring-offset-0'
+                      disabled={isLoading}
+                      required
+                    />
+                  </div>
+                  <div className='space-y-2'>
+                    <label htmlFor='password-signin' className='text-foreground text-sm font-semibold'>
+                      Password
+                    </label>
+                    <Input
+                      type='password'
+                      id='password-signin'
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      placeholder='Your password'
+                      className='glass-card text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/20 h-12 rounded-2xl border-0 px-4 transition-all focus-visible:ring-2 focus-visible:ring-offset-0'
+                      disabled={isLoading}
+                      required
+                    />
+                  </div>
+                  <Button
+                    type='submit'
+                    disabled={isLoading || !email || !password}
+                    className='from-primary elevation-2 hover:elevation-3 h-12 w-full rounded-2xl bg-gradient-to-r via-purple-500 to-pink-500 font-semibold text-white transition-all duration-300 hover:scale-[1.02] disabled:scale-100 disabled:opacity-70'
+                  >
+                    {isLoading && authMethod === 'credentials' ? (
+                      <>
+                        <Loader className='mr-2 h-5 w-5 animate-spin' />
+                        Signing in...
+                      </>
+                    ) : (
+                      <>
+                        <Lock className='mr-2 h-5 w-5' />
+                        Sign in
                       </>
                     )}
                   </Button>

@@ -2,23 +2,26 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import db from '@/db';
 import { tests } from '@/db/schema';
+import { auth } from '@/lib/auth';
 import { desc } from 'drizzle-orm';
 import {
-  Activity,
-  AlertCircle,
-  BarChart3,
-  CheckCircle,
-  Clock,
-  ExternalLink,
-  Globe,
-  Plus,
-  Rocket,
-  Sparkles,
-  Target,
-  Users,
-  Zap,
+    Activity,
+    AlertCircle,
+    BarChart3,
+    CheckCircle,
+    Clock,
+    ExternalLink,
+    Globe,
+    Plus,
+    Rocket,
+    Sparkles,
+    Target,
+    Users,
+    Zap,
 } from 'lucide-react';
+import { headers } from 'next/headers';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,7 +39,11 @@ function getStatusIcon(status: string) {
 }
 
 export default async function DashboardPage() {
-  // For production: Add proper authentication check here
+  // Require authentication: redirect to /auth if no session
+  const session = await auth.api.getSession({ headers: headers() as unknown as HeadersInit });
+  if (!session) {
+    redirect('/auth');
+  }
   const userTests = await db
     .select()
     .from(tests)

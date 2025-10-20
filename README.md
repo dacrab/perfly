@@ -78,6 +78,10 @@ DATABASE_URL=postgresql://username:password@your-neon-host/dbname
 # Authentication
 AUTH_SECRET=your-random-secret
 
+# Social (optional)
+GOOGLE_CLIENT_ID=your-google-oauth-client-id
+GOOGLE_CLIENT_SECRET=your-google-oauth-client-secret
+
 # Email (magic links)
 RESEND_API_KEY=your-resend-api-key
 
@@ -91,6 +95,7 @@ AUTO_START_PROCESSOR=true
 
 Notes:
 - `AUTH_SECRET` is required by Better Auth
+- `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` enable Google sign-in
 - `PAGESPEED_API_KEY` (or `GOOGLE_PAGESPEED_API_KEY`) is required to run tests
 - Queue auto-starts in production; set `AUTO_START_PROCESSOR=true` to start in dev
 
