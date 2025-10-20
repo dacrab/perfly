@@ -2,7 +2,7 @@
   "ci": {
     "collect": {
       "numberOfRuns": 3,
-      "startServerCommand": "bun start",
+      "startServerCommand": "npm start",
       "url": ["http://localhost:3000", "http://localhost:3000/auth", "http://localhost:3000/run"],
       "settings": {
         "preset": "desktop",
