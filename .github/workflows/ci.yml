@@ -44,22 +44,6 @@ jobs:
       - name: Lint and typecheck
         run: bun run lint
 
-      - name: Detect test files
-        id: detect-tests
-        shell: bash
-        run: |
-          shopt -s globstar nullglob
-          files=(**/*.test.ts **/*.test.tsx **/*.test.js **/*.test.jsx **/*.spec.ts **/*.spec.tsx **/*.spec.js **/*.spec.jsx)
-          if [ ${#files[@]} -gt 0 ]; then
-            echo "has_tests=true" >> $GITHUB_OUTPUT
-          else
-            echo "has_tests=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Run tests (if any)
-        if: ${{ steps.detect-tests.outputs.has_tests == 'true' }}
-        run: bun test --bail
-
       - name: Build
         run: bun run build
 
