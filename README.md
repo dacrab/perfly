@@ -1,29 +1,24 @@
-# Perfly · Website Performance Testing Platform
+# Perfly · Minimal Website Performance Testing (Next.js + PSI)
 
-Perfly is a modern web performance testing platform that lets you run comprehensive website speed tests with AI-powered analysis and historical tracking.
-
-Think Google PageSpeed Insights + Lighthouse, but with a streamlined, developer-friendly UX and intelligent insights.
+Perfly is a lightweight web performance testing app. Enter a URL, queue a test, and view results powered by Google PageSpeed Insights. Results are stored in Postgres and presented in a clean UI.
 
 ## ✨ Features
 
-- **Performance Testing**: Run tests for any URL with multiple locations and connection profiles
-- **Core Web Vitals**: LCP, CLS, FCP, TTI and more
-- **Waterfall & Resources**: Timing breakdowns and asset details
-- **Analysis**: Plain-language insights and prioritized recommendations (optional, non-AI)
-- **History & Trends**: Save and review past tests (auth required)
-- **Auth via GitHub**: Better Auth with GitHub OAuth and optional magic links (Resend)
+- **Run tests for any URL**: Queues a background job and fetches metrics via PageSpeed Insights
+- **Core metrics**: Performance score, Web Vitals (LCP, FID/TBT, CLS, TTFB, FCP, SI)
+- **Persistent results**: Tests and results saved in Postgres (Neon) via Drizzle ORM
+- **Email sign-in (magic link)**: Passwordless auth using Better Auth + Resend
+- **Modern UI**: Tailwind CSS v4, shadcn/ui, Radix primitives, Lucide icons
 
-## 🧱 Architecture Overview
+## 🧱 Tech Stack
 
 - **Framework**: Next.js 15 (App Router)
 - **Runtime / PM**: Bun
 - **Database**: Neon PostgreSQL
 - **ORM**: Drizzle ORM
-- **Auth**: Better Auth (GitHub, magic link)
- 
+- **Auth**: Better Auth (magic link)
 - **Email**: Resend
-- **UI**: Tailwind CSS + shadcn/ui + Radix UI + Lucide Icons
-- **Deployment**: Vercel
+- **Styling**: Tailwind CSS v4
 
 ### Directory Layout
 
@@ -32,12 +27,11 @@ src/
 ├─ app/                  # Routes (App Router)
 │  ├─ api/               # API routes (tests, auth)
 │  ├─ results/[id]/      # Result views
-│  ├─ dashboard/         # User dashboard
-│  └─ auth/              # Auth UI
+│  ├─ dashboard/         # Dashboard UI
+│  └─ auth/              # Auth routes
 ├─ components/           # UI components (shadcn/ui)
 ├─ db/                   # Drizzle schema & migrations
-├─ lib/                  # Auth, email, logger, queue, utils, pagespeed
-└─ ai/                   # AI helpers
+└─ lib/                  # auth, email, logger, pagespeed client, queue, utils
 ```
 
 ### Data Model (Drizzle)
@@ -50,20 +44,18 @@ src/
 
 ### Prerequisites
 
-- Node.js 18+ or Bun
-- Neon PostgreSQL database
-- GitHub OAuth app (Client ID/Secret)
- 
+- Bun 1.x
+- Neon PostgreSQL database (or any Postgres with a `DATABASE_URL`)
 
 ### Quick Setup
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/dacrab/perfly
 cd perfly
 bun install
 
-# Copy and edit environment variables
-cp .env.example .env.local || true
+# Create local environment file
+cp .env.example .env.local
 
 # Generate and apply database migrations
 bun run db:generate
@@ -73,11 +65,11 @@ bun run db:migrate
 bun run dev
 ```
 
-Open http://localhost:3000
+Open `http://localhost:3000`.
 
 ### Environment Variables
 
-Create `.env.local` with:
+Create `.env.local` with at least:
 
 ```bash
 # Database
@@ -85,16 +77,22 @@ DATABASE_URL=postgresql://username:password@your-neon-host/dbname
 
 # Authentication
 AUTH_SECRET=your-random-secret
-AUTH_ORIGIN=http://localhost:3000
-GITHUB_CLIENT_ID=your-github-client-id
-GITHUB_CLIENT_SECRET=your-github-client-secret
 
-# Email (optional)
+# Email (magic links)
 RESEND_API_KEY=your-resend-api-key
 
-# Performance Testing
+# PageSpeed Insights
 PAGESPEED_API_KEY=your-google-pagespeed-insights-api-key
+# (also supported) GOOGLE_PAGESPEED_API_KEY
+
+# Background processor (optional)
+AUTO_START_PROCESSOR=true
 ```
+
+Notes:
+- `AUTH_SECRET` is required by Better Auth
+- `PAGESPEED_API_KEY` (or `GOOGLE_PAGESPEED_API_KEY`) is required to run tests
+- Queue auto-starts in production; set `AUTO_START_PROCESSOR=true` to start in dev
 
 ## 🛠️ Scripts
 
@@ -104,70 +102,62 @@ bun run dev              # Start dev server
 bun run build            # Build for production
 bun run start            # Run production build
 
-# Database
-bun run db:generate      # Generate migrations
+# Database (Drizzle)
+bun run db:generate      # Generate migrations from schema
 bun run db:migrate       # Apply migrations
 bun run db:push          # Push schema changes
 
 # Quality
-bun run lint             # Typecheck + lint (Ultracite)
+bun run lint             # Typecheck + lint (TypeScript + Ultracite)
 bun run format           # Format code (Ultracite)
 ```
 
-## 🔌 Notable Endpoints
+## 🔌 API Endpoints
 
-- `POST /api/tests/run` – Trigger a test for a URL
+- `POST /api/tests/run` – Queue a test for a URL
 - `GET /api/tests/[id]` – Fetch test status/results
- 
-- `GET /api/auth/[...all]` – Auth routes (Better Auth)
+- `GET /api/auth/[...all]` – Better Auth routes (magic link)
 
-## 🧩 Implementation Notes
+Example:
 
-- **Auth**: Configured via Better Auth with GitHub provider and magic link plugin (Resend)
-- **DB**: Drizzle with Neon; migrations in `src/db/migrations`
- 
-- **UI**: Tailwind v4 with shadcn/ui primitives
+```bash
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://example.com"}' \
+  http://localhost:3000/api/tests/run
+```
+
+## 🔄 CI/CD
+
+GitHub Actions in `/.github/workflows`:
+- `ci.yml` – Checkout, setup Bun, install, lint/typecheck, conditional tests, build
+- `lighthouse.yml` – Build and run Lighthouse CI using `lighthouserc.json`
+
+Dependabot config: `/.github/dependabot.yml` (weekly updates for npm + actions).
+
+Lockfiles: `bun.lock`/`bun.lockb` are ignored; CI regenerates dependencies. Commit them if you prefer strict reproducibility.
 
 ## 📦 Deployment
 
-Perfly is optimized for Vercel.
+Deploy on Vercel (recommended). Set required env vars in your hosting provider.
 
-1) Link and deploy once locally (optional):
+Basic manual flow:
 
 ```bash
 npx vercel link
 npx vercel --prod
 ```
 
-2) Configure GitHub Actions secrets for automated deploys:
-
-- `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`
-- `NEON_PROJECT_ID`, `NEON_API_KEY` (for PR preview DB branches)
-
-See `docs/DEPLOYMENT_SETUP.md` for step‑by‑step instructions.
-
-## 🔄 CI/CD (KISS Workflows)
-
-Simple workflow set (see `docs/WORKFLOW-ARCHITECTURE.md`):
-
-- `ci.yml` – Quality, security, build, deploy (main)
-- `preview.yml` – PR preview envs with Neon branches
-- `maintenance.yml` – Daily security & cleanup
-- `deploy.yml` – Manual emergency deploys
-
 ## 🤝 Contributing
 
-1. Fork and create a feature branch
+1. Create a feature branch
 2. Make changes and run `bun run lint`
-3. Commit and open a PR
+3. Open a PR
 
 ## 📄 License
 
 MIT
 
-## 🔗 Resources
+---
 
-- Docs: `./docs`
-- Tech: Next.js, Neon, Drizzle, Better Auth, Resend, shadcn/ui
-
-— Perfly: making performance testing accessible, intelligent, and actionable.
+Perfly — simple, modern performance testing with Next.js.

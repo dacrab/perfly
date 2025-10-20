@@ -1,40 +1,15 @@
 version: 2
 updates:
-  # Bun package updates
-  - package-ecosystem: "bun"
+  - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "UTC"
-    labels: ["dependencies", "dependabot"]
-    open-pull-requests-limit: 8
-    versioning-strategy: increase
-    groups:
-      dev-dependencies:
-        patterns:
-          - "@types/*"
-          - "typescript"
-          - "@biomejs/*"
-          - "drizzle-kit"
-          - "tailwind*"
-          - "eslint*"
-          - "prettier*"
-      security-updates:
-        patterns:
-          - "*"
-        update-types:
-          - "security"
-  
-  # GitHub Actions updates
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "UTC"
-    labels: ["dependencies", "github-actions", "dependabot"]
-    open-pull-requests-limit: 5
+
 
